@@ -1,0 +1,80 @@
+// Sweepstake System - Cheltenham Festival style horse racing sweepstakes
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Admin user - simple auth for sweepstake management
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+}
+
+// An event/race - e.g. "Cheltenham Gold Cup 2026", "Grand National 2025"
+model Sweepstake {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  eventDate       DateTime
+  entryDeadline   DateTime
+  maxParticipants Int?
+  status          String   @default("draft") // draft, open, closed, drawn, completed
+  pointsFirst     Int      @default(10)
+  pointsSecond    Int      @default(5)
+  pointsThird     Int      @default(2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  horses          Horse[]
+  entries         Entry[]
+  results         RaceResult[]
+}
+
+// Horses/entries in the race - can be marked as non-runner
+model Horse {
+  id          String   @id @default(cuid())
+  sweepstakeId String
+  name        String
+  isNonRunner Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  sweepstake  Sweepstake @relation(fields: [sweepstakeId], references: [id], onDelete: Cascade)
+  entry       Entry?
+  raceResult  RaceResult?
+}
+
+// Participant entry - someone who entered the sweepstake
+model Entry {
+  id               String   @id @default(cuid())
+  sweepstakeId     String
+  participantName  String
+  participantEmail String?
+  entryToken       String   @unique // Secret token to view assigned horse
+  horseId          String?  @unique // Assigned after draw - one entry per horse
+  createdAt        DateTime @default(now())
+
+  sweepstake   Sweepstake @relation(fields: [sweepstakeId], references: [id], onDelete: Cascade)
+  horse        Horse?     @relation(fields: [horseId], references: [id], onDelete: SetNull)
+}
+
+// Race results - 1st, 2nd, 3rd place (admin enters after race)
+model RaceResult {
+  id           String   @id @default(cuid())
+  sweepstakeId String
+  horseId      String   @unique
+
+  position     Int      // 1, 2, 3
+  points       Int
+  createdAt    DateTime @default(now())
+
+  sweepstake   Sweepstake @relation(fields: [sweepstakeId], references: [id], onDelete: Cascade)
+  horse        Horse      @relation(fields: [horseId], references: [id], onDelete: Cascade)
+}
