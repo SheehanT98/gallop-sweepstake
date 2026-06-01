@@ -1,25 +1,21 @@
 import {
   AbsoluteFill,
-  Img,
   interpolate,
   spring,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import type { WrappedFact } from "../src/lib/wrapped/types";
+import type { MediaItem, WrappedFact } from "../src/lib/wrapped/types";
+import { BackgroundMedia } from "./BackgroundMedia";
 import { PALETTES } from "./theme";
 
 type SlideProps = {
   fact: WrappedFact;
-  bgUrl?: string;
+  media?: MediaItem;
   paletteIndex: number;
 };
 
-export const Slide: React.FC<SlideProps> = ({
-  fact,
-  bgUrl,
-  paletteIndex,
-}) => {
+export const Slide: React.FC<SlideProps> = ({ fact, media, paletteIndex }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const palette = PALETTES[paletteIndex % PALETTES.length];
@@ -39,18 +35,7 @@ export const Slide: React.FC<SlideProps> = ({
 
   return (
     <AbsoluteFill>
-      {bgUrl ? (
-        <Img
-          src={bgUrl}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-          }}
-        />
-      ) : (
-        <AbsoluteFill style={{ backgroundColor: "#111" }} />
-      )}
+      <BackgroundMedia item={media} />
       <AbsoluteFill
         style={{
           background: palette.gradient,

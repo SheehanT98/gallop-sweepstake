@@ -1,49 +1,31 @@
 import path from "path";
-import { bundle } from "@remotion/bundler";
-import { renderMedia, selectComposition } from "@remotion/renderer";
 import { getDemoFoalings } from "../src/lib/wrapped/demo-data";
 import { buildWrappedPayload } from "../src/lib/wrapped/facts";
 import { getWrappedForSeason } from "../src/lib/wrapped/data";
-import { computeDurationFrames } from "../remotion/WrappedVideo";
+import { renderWrappedVideo } from "../src/lib/wrapped/render-video";
 
-async function loadPayload(season: string) {
-  const hasSupabase = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  if (hasSupabase) {
+async function main() {
+  const season = process.argv[2] ?? "2025-26";
+  let payload;
+
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
     try {
-      return await getWrappedForSeason(season);
+      payload = await getWrappedForSeason(season);
     } catch {
       console.warn("Supabase fetch failed, using demo foalings");
     }
   }
 
-  const rows = getDemoFoalings(season);
-  const mediaUrls = [
-    "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=1920&q=80",
-    "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=1920&q=80",
-    "https://images.unsplash.com/photo-1560493676-04071c5f465d?w=1920&q=80",
-  ];
-  return buildWrappedPayload(rows, season, mediaUrls, true);
-}
-
-async function main() {
-  const season = process.argv[2] ?? "2025-26";
-  const payload = await loadPayload(season);
-  const durationInFrames = computeDurationFrames(payload.facts.length);
-
-  console.log(`Rendering Foaling Wrapped for ${season}…`);
-  console.log(`Slides: ${payload.facts.length}, frames: ${durationInFrames}`);
-
-  const entry = path.join(process.cwd(), "remotion/index.ts");
-  const bundleLocation = await bundle({
-    entryPoint: entry,
-    webpackOverride: (config) => config,
-  });
-
-  const composition = await selectComposition({
-    serveUrl: bundleLocation,
-    id: "FoalingWrapped",
-    inputProps: { payload },
-  });
+  if (!payload) {
+    const rows = getDemoFoalings(season);
+    const media = [
+      {
+        url: "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=1920&q=80",
+        type: "image" as const,
+      },
+    ];
+    payload = buildWrappedPayload(rows, season, media, true);
+  }
 
   const outDir = path.join(process.cwd(), "remotion-out");
   const outputLocation = path.join(
@@ -51,18 +33,9 @@ async function main() {
     `foaling-wrapped-${season.replace(/[^a-z0-9-]/gi, "_")}.mp4`,
   );
 
-  await renderMedia({
-    composition: {
-      ...composition,
-      durationInFrames,
-    },
-    serveUrl: bundleLocation,
-    codec: "h264",
-    outputLocation,
-    inputProps: { payload },
-  });
-
-  console.log(`Done: ${outputLocation}`);
+  console.log(`Rendering Foaling Wrapped for ${season}…`);
+  const { durationFrames } = await renderWrappedVideo(payload, outputLocation);
+  console.log(`Done (${durationFrames} frames): ${outputLocation}`);
 }
 
 main().catch((err) => {

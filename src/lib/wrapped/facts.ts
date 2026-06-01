@@ -1,6 +1,9 @@
+import { buildTimeline } from "@/lib/wrapped/beats";
 import type {
   FoalingRow,
   HardStats,
+  MediaItem,
+  WrappedAudioConfig,
   WrappedFact,
   WrappedPayload,
 } from "@/lib/wrapped/types";
@@ -595,9 +598,10 @@ export function assembleStoryFromSelection(
 export function buildWrappedPayload(
   rows: FoalingRow[],
   seasonLabel: string,
-  mediaUrls: string[],
+  media: MediaItem[],
   usingDemoData: boolean,
   selectedFactIds?: string[],
+  audio?: WrappedAudioConfig | null,
 ): WrappedPayload {
   const hardStats = computeHardStats(rows, seasonLabel);
   const allCandidates = buildAllCandidates(rows, seasonLabel, hardStats);
@@ -605,12 +609,25 @@ export function buildWrappedPayload(
     ? assembleStoryFromSelection(allCandidates, selectedFactIds)
     : selectFactsForStory(allCandidates);
 
+  const mediaUrls = media.map((m) => m.url);
+  const timeline = audio
+    ? buildTimeline(facts, {
+        trimStartSec: audio.trimStartSec,
+        trimEndSec: audio.trimEndSec,
+        bpm: audio.bpm,
+        syncToBeat: audio.syncToBeat,
+      })
+    : buildTimeline(facts, null);
+
   return {
     seasonLabel,
     facts,
     allCandidates,
     hardStats,
     mediaUrls,
+    media,
+    audio: audio ?? null,
+    timeline,
     usingDemoData,
   };
 }

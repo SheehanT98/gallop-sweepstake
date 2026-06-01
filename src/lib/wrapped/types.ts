@@ -59,12 +59,40 @@ export type HardStats = {
   avgPerWeek: number;
 };
 
+export type MediaItem = {
+  url: string;
+  type: "image" | "video";
+};
+
+export type WrappedAudioConfig = {
+  url: string;
+  trimStartSec: number;
+  trimEndSec: number;
+  durationSec: number;
+  bpm: number;
+  syncToBeat: boolean;
+  spotifyUrl: string | null;
+  appleMusicUrl: string | null;
+  trackTitle: string | null;
+  artist: string | null;
+};
+
+export type WrappedTimeline = {
+  slideDurationsSec: number[];
+  totalSec: number;
+  beatIntervalSec: number;
+};
+
 export type WrappedPayload = {
   seasonLabel: string;
   facts: WrappedFact[];
   allCandidates: WrappedFact[];
   hardStats: HardStats;
+  /** @deprecated use media */
   mediaUrls: string[];
+  media: MediaItem[];
+  audio: WrappedAudioConfig | null;
+  timeline: WrappedTimeline | null;
   usingDemoData: boolean;
 };
 
@@ -74,4 +102,11 @@ export type SeasonPreview = {
   colts: number;
   fillies: number;
   usingDemoData: boolean;
+};
+
+export type MusicReference = {
+  platform: "spotify" | "apple" | null;
+  url: string;
+  trackTitle: string | null;
+  artist: string | null;
 };

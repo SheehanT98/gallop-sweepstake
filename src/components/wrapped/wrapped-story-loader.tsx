@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getStoredAudioConfig } from "@/lib/wrapped/audio-storage";
 import { getStoredFactIds } from "@/lib/wrapped/selection-storage";
+import { buildTimeline } from "@/lib/wrapped/beats";
 import type { WrappedPayload } from "@/lib/wrapped/types";
 import { WrappedStory } from "@/components/wrapped/wrapped-story";
 
@@ -19,20 +21,49 @@ export function WrappedStoryLoader({
 
   useEffect(() => {
     const stored = getStoredFactIds(season);
-    if (!stored?.length) {
-      setReady(true);
-      return;
-    }
+    const storedAudio = getStoredAudioConfig(season);
 
-    const params = new URLSearchParams({ facts: stored.join(",") });
+    const params = new URLSearchParams();
+    if (stored?.length) params.set("facts", stored.join(","));
+
     fetch(`/api/wrapped/${encodeURIComponent(season)}?${params}`)
       .then((r) => r.json())
       .then((data: WrappedPayload) => {
-        setPayload(data);
+        const audio = storedAudio ?? data.audio;
+        const timeline = buildTimeline(
+          data.facts,
+          audio
+            ? {
+                trimStartSec: audio.trimStartSec,
+                trimEndSec: audio.trimEndSec,
+                bpm: audio.bpm,
+                syncToBeat: audio.syncToBeat,
+              }
+            : null,
+        );
+        setPayload({ ...data, audio, timeline });
         setReady(true);
       })
-      .catch(() => setReady(true));
-  }, [season]);
+      .catch(() => {
+        const audio = storedAudio ?? initialPayload.audio;
+        setPayload({
+          ...initialPayload,
+          audio,
+          timeline: buildTimeline(
+            initialPayload.facts,
+            audio
+              ? {
+                  trimStartSec: audio.trimStartSec,
+                  trimEndSec: audio.trimEndSec,
+                  bpm: audio.bpm,
+                  syncToBeat: audio.syncToBeat,
+                }
+              : null,
+          ),
+        });
+        setReady(true);
+      });
+  }, [season, initialPayload]);
 
   if (!ready) {
     return (

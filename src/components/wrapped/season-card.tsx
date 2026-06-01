@@ -38,17 +38,23 @@ export function SeasonCard({ preview }: { preview: SeasonPreview }) {
           />
         </div>
       </div>
-      <div className="flex">
+      <div className="grid grid-cols-3 text-sm font-semibold">
+        <Link
+          href={`${href}/upload`}
+          className="flex items-center justify-center py-3.5 text-white/55 transition hover:bg-white/5 hover:text-white"
+        >
+          Upload
+        </Link>
         <Link
           href={curateHref}
-          className="flex flex-1 items-center justify-center gap-2 py-4 text-sm font-semibold text-white/70 transition hover:bg-white/5 hover:text-white"
+          className="flex items-center justify-center gap-1.5 border-x border-white/10 py-3.5 text-white/70 transition hover:bg-white/5 hover:text-white"
         >
           <SlidersHorizontal className="h-4 w-4" />
           Curate
         </Link>
         <Link
           href={`${href}/play`}
-          className="flex flex-1 items-center justify-center gap-2 border-l border-white/10 bg-emerald-500/15 py-4 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/25"
+          className="flex items-center justify-center gap-1.5 bg-emerald-500/15 py-3.5 text-emerald-300 transition hover:bg-emerald-500/25"
         >
           <Sparkles className="h-4 w-4" />
           Play

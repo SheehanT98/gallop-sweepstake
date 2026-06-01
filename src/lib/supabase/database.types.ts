@@ -55,6 +55,35 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["wrapped_media"]["Insert"]>;
       };
+      wrapped_audio: {
+        Row: {
+          season_label: string;
+          storage_path: string;
+          trim_start_ms: number;
+          trim_end_ms: number | null;
+          bpm: number | null;
+          sync_to_beat: boolean;
+          spotify_url: string | null;
+          apple_music_url: string | null;
+          track_title: string | null;
+          artist: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          season_label: string;
+          storage_path: string;
+          trim_start_ms?: number;
+          trim_end_ms?: number | null;
+          bpm?: number | null;
+          sync_to_beat?: boolean;
+          spotify_url?: string | null;
+          apple_music_url?: string | null;
+          track_title?: string | null;
+          artist?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["wrapped_audio"]["Insert"]>;
+      };
       wrapped_renders: {
         Row: {
           id: string;

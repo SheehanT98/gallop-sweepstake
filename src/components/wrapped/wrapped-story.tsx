@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -12,7 +12,7 @@ import {
   Share2,
   SlidersHorizontal,
 } from "lucide-react";
-import type { WrappedFact, WrappedPayload } from "@/lib/wrapped/types";
+import type { MediaItem, WrappedFact, WrappedPayload } from "@/lib/wrapped/types";
 import { CATEGORY_GRADIENT } from "@/lib/wrapped/category-styles";
 import {
   BigNumberSlide,
@@ -20,18 +20,36 @@ import {
   StatsSlide,
   WeekdayBarsSlide,
 } from "@/components/wrapped/slide-visuals";
+import { BackgroundMedia } from "@/components/wrapped/background-media";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const SLIDE_MS = 4500;
+const DEFAULT_SLIDE_MS = 4500;
 
 type WrappedStoryProps = {
   payload: WrappedPayload;
 };
 
-function pickBackground(urls: string[], index: number) {
-  if (!urls.length) return undefined;
-  return urls[index % urls.length];
+function getMediaList(payload: WrappedPayload): MediaItem[] {
+  if (payload.media.length) return payload.media;
+  return payload.mediaUrls.map((url) => ({
+    url,
+    type: url.match(/\.(mp4|webm|mov)(\?|$)/i) ? "video" as const : "image" as const,
+  }));
+}
+
+function pickMedia(media: MediaItem[], index: number) {
+  if (!media.length) return undefined;
+  return media[index % media.length];
+}
+
+function slideDurationMs(payload: WrappedPayload, slideIndex: number): number {
+  const sec = payload.timeline?.slideDurationsSec[slideIndex];
+  if (sec) return sec * 1000;
+  const fact = payload.facts[slideIndex];
+  if (fact?.category === "title") return 5000;
+  if (fact?.category === "stats") return 9000;
+  return DEFAULT_SLIDE_MS;
 }
 
 function FactSlide({ fact }: { fact: WrappedFact }) {
@@ -75,17 +93,37 @@ function FactSlide({ fact }: { fact: WrappedFact }) {
 
 export function WrappedStory({ payload }: WrappedStoryProps) {
   const slides = payload.facts;
+  const mediaList = getMediaList(payload);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [finished, setFinished] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const currentMs = slideDurationMs(payload, index);
 
   const current = slides[index];
   const isStats = current?.category === "stats";
   const isLast = index === slides.length - 1;
-  const bg = pickBackground(payload.mediaUrls, index);
+  const bgMedia = pickMedia(mediaList, index);
   const gradient =
     CATEGORY_GRADIENT[current?.category ?? "title"] ??
     CATEGORY_GRADIENT.title;
+
+  const syncAudioToSlide = useCallback(
+    (slideIndex: number, autoplay: boolean) => {
+      const audio = payload.audio;
+      const el = audioRef.current;
+      if (!audio?.url || !el) return;
+      let offset = audio.trimStartSec;
+      for (let i = 0; i < slideIndex; i++) {
+        offset += (payload.timeline?.slideDurationsSec[i] ?? 4);
+      }
+      el.currentTime = Math.min(offset, audio.trimEndSec - 0.1);
+      if (autoplay && playing) {
+        el.play().catch(() => {});
+      }
+    },
+    [payload, playing],
+  );
 
   const next = useCallback(() => {
     if (index >= slides.length - 1) {
@@ -108,13 +146,21 @@ export function WrappedStory({ payload }: WrappedStoryProps) {
     setIndex(0);
     setFinished(false);
     setPlaying(true);
+    if (audioRef.current && payload.audio) {
+      audioRef.current.currentTime = payload.audio.trimStartSec;
+      audioRef.current.play().catch(() => {});
+    }
   };
 
   useEffect(() => {
+    syncAudioToSlide(index, true);
+  }, [index, syncAudioToSlide]);
+
+  useEffect(() => {
     if (!playing || finished) return;
-    const t = setInterval(next, SLIDE_MS);
+    const t = setInterval(next, currentMs);
     return () => clearInterval(t);
-  }, [playing, finished, next]);
+  }, [playing, finished, next, currentMs]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -149,6 +195,14 @@ export function WrappedStory({ payload }: WrappedStoryProps) {
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] max-w-lg flex-col overflow-hidden bg-black">
+      {payload.audio?.url ? (
+        <audio
+          ref={audioRef}
+          src={payload.audio.url}
+          className="hidden"
+          preload="auto"
+        />
+      ) : null}
       <div className="absolute inset-x-0 top-0 z-30 flex gap-1 p-3 pt-4 safe-top">
         {slides.map((_, i) => (
           <button
@@ -172,7 +226,7 @@ export function WrappedStory({ payload }: WrappedStoryProps) {
               )}
               style={
                 i === index && playing && !finished
-                  ? { animationDuration: `${SLIDE_MS}ms` }
+                  ? { animationDuration: `${slideDurationMs(payload, i)}ms` }
                   : undefined
               }
             />
@@ -182,23 +236,14 @@ export function WrappedStory({ payload }: WrappedStoryProps) {
 
       <AnimatePresence mode="wait">
         <motion.div
-          key={`bg-${index}-${bg}`}
+          key={`bg-${index}-${bgMedia?.url}`}
           initial={{ opacity: 0, scale: 1.06 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.65 }}
           className="absolute inset-0"
         >
-          {bg ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={bg}
-              alt=""
-              className="ken-burns h-full w-full object-cover"
-            />
-          ) : (
-            <div className="h-full w-full bg-zinc-900" />
-          )}
+          <BackgroundMedia item={bgMedia} />
           <div
             className={cn("absolute inset-0 bg-gradient-to-b", gradient)}
           />
@@ -302,7 +347,14 @@ export function WrappedStory({ payload }: WrappedStoryProps) {
             <Button
               variant="secondary"
               size="icon"
-              onClick={() => setPlaying((p) => !p)}
+              onClick={() => {
+                setPlaying((p) => {
+                  const next = !p;
+                  if (!next) audioRef.current?.pause();
+                  else audioRef.current?.play().catch(() => {});
+                  return next;
+                });
+              }}
               className="bg-black/40 backdrop-blur"
               aria-label={playing ? "Pause" : "Play"}
             >

@@ -14,10 +14,25 @@ Open [http://localhost:3000](http://localhost:3000) — choose **Foaling Wrapped
 
 ## Flow
 
-1. **Seasons** — preview totals per `season_label`
-2. **Curate** — tick/untick auto-suggested fun facts (saved in browser)
-3. **Play** — full-screen story with animated charts, Ken Burns backgrounds, share & replay
-4. **Video** — optional Remotion export (see below)
+1. **Upload** — CSV foalings, photos/video B-roll, soundtrack (MP3/M4A)
+2. **Curate** — drag to reorder facts, trim music, beat-sync toggle, Spotify/Apple link (reference)
+3. **Play** — story with video backgrounds + synced audio
+4. **Export MP4** — in-app render (or `npm run remotion:render` locally)
+
+## Install as app (PWA)
+
+Open on your phone → browser menu → **Add to Home Screen**. Works offline for shell navigation after first visit.
+
+## Music & Spotify / Apple Music
+
+You **cannot** pull audio from Spotify or Apple Music into an export (their licenses forbid it — same reason Instagram uses its own licensed library).
+
+What we support (like Instagram’s flow):
+
+1. Paste a **Spotify or Apple Music link** as a reference (which track you want)
+2. **Upload** the MP3/M4A you own or are licensed to use
+3. **Trim** start/end sliders to the hook or chorus
+4. **Auto BPM** + **sync slide cuts to beats** for the Wrapped feel
 
 ## Supabase setup (when ready)
 
