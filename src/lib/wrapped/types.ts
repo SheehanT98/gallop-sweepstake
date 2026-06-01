@@ -21,12 +21,19 @@ export type FactCategory =
   | "assisted"
   | "stats";
 
+export type FactVisual =
+  | "default"
+  | "big-number"
+  | "sex-bars"
+  | "weekday-bars";
+
 export type WrappedFact = {
   id: string;
   category: FactCategory;
   headline: string;
   subline?: string;
   score: number;
+  visual?: FactVisual;
   metadata?: Record<string, string | number>;
 };
 
@@ -48,17 +55,23 @@ export type HardStats = {
   weightRecordedCount: number;
   nightPct: number;
   assistedPct: number | null;
+  weekendPct: number;
+  avgPerWeek: number;
 };
 
 export type WrappedPayload = {
   seasonLabel: string;
   facts: WrappedFact[];
+  allCandidates: WrappedFact[];
   hardStats: HardStats;
   mediaUrls: string[];
   usingDemoData: boolean;
 };
 
-export type MediaItem = {
-  url: string;
-  type: "image" | "video";
+export type SeasonPreview = {
+  seasonLabel: string;
+  total: number;
+  colts: number;
+  fillies: number;
+  usingDemoData: boolean;
 };

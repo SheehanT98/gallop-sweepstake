@@ -5,12 +5,17 @@ type RouteContext = {
   params: Promise<{ season: string }>;
 };
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const { season: raw } = await context.params;
   const season = decodeURIComponent(raw);
+  const { searchParams } = new URL(request.url);
+  const factsParam = searchParams.get("facts");
+  const selectedFactIds = factsParam
+    ? factsParam.split(",").map((s) => s.trim()).filter(Boolean)
+    : undefined;
 
   try {
-    const payload = await getWrappedForSeason(season);
+    const payload = await getWrappedForSeason(season, { selectedFactIds });
     return NextResponse.json(payload);
   } catch (error) {
     console.error("wrapped api error", error);

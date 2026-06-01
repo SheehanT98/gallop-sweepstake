@@ -12,6 +12,13 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) — choose **Foaling Wrapped**.
 
+## Flow
+
+1. **Seasons** — preview totals per `season_label`
+2. **Curate** — tick/untick auto-suggested fun facts (saved in browser)
+3. **Play** — full-screen story with animated charts, Ken Burns backgrounds, share & replay
+4. **Video** — optional Remotion export (see below)
+
 ## Supabase setup (when ready)
 
 1. Create a Supabase project.
@@ -48,7 +55,9 @@ Output: `remotion-out/foaling-wrapped-2025-26.mp4`
 
 ## API
 
-`GET /api/wrapped/[season]` — JSON payload (facts, hard stats, media URLs).
+`GET /api/wrapped/[season]` — JSON payload (facts, all candidates, hard stats, media URLs).
+
+`GET /api/wrapped/[season]?facts=id1,id2` — story with a custom fact selection.
 
 ## Demo mode
 

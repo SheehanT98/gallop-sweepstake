@@ -35,6 +35,7 @@ export const Slide: React.FC<SlideProps> = ({
   const scale = interpolate(enter, [0, 1], [0.92, 1]);
 
   const isTitle = fact.category === "title";
+  const isBigNumber = fact.visual === "big-number";
 
   return (
     <AbsoluteFill>
@@ -79,7 +80,7 @@ export const Slide: React.FC<SlideProps> = ({
         <h1
           style={{
             color: "#fff",
-            fontSize: isTitle ? 96 : 72,
+            fontSize: isBigNumber ? 140 : isTitle ? 96 : 72,
             fontWeight: 900,
             lineHeight: 0.95,
             letterSpacing: -2,

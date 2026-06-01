@@ -127,15 +127,25 @@ export function computeHardStats(
     .filter((w): w is number => w != null && !Number.isNaN(w));
 
   let nightCount = 0;
+  let weekendCount = 0;
   let assistedCount = 0;
   let assistedTotal = 0;
   for (const r of rows) {
-    const { hour } = zonedParts(r.foaled_at, timeZone);
+    const { hour, weekday } = zonedParts(r.foaled_at, timeZone);
     if (hour >= 22 || hour < 6) nightCount++;
+    if (weekday === 0 || weekday === 6) weekendCount++;
     if (r.assisted != null) {
       assistedTotal++;
       if (r.assisted) assistedCount++;
     }
+  }
+
+  let seasonWeeks = 1;
+  if (sorted.length >= 2) {
+    const ms =
+      new Date(sorted.at(-1)!.foaled_at).getTime() -
+      new Date(sorted[0].foaled_at).getTime();
+    seasonWeeks = Math.max(1, Math.ceil(ms / (1000 * 60 * 60 * 24 * 7)));
   }
 
   return {
@@ -161,10 +171,12 @@ export function computeHardStats(
     nightPct: pct(nightCount, total),
     assistedPct:
       assistedTotal > 0 ? pct(assistedCount, assistedTotal) : null,
+    weekendPct: pct(weekendCount, total),
+    avgPerWeek: round1(total / seasonWeeks),
   };
 }
 
-function buildCandidates(
+export function buildAllCandidates(
   rows: FoalingRow[],
   seasonLabel: string,
   stats: HardStats,
@@ -185,9 +197,10 @@ function buildCandidates(
   candidates.push({
     id: "volume-total",
     category: "volume",
-    headline: `${stats.total} foals`,
-    subline: "born this season",
+    headline: `${stats.total}`,
+    subline: "foals born this season",
     score: 900,
+    visual: "big-number",
     metadata: { total: stats.total },
   });
 
@@ -201,6 +214,23 @@ function buildCandidates(
       headline: `${leader} led the barn`,
       subline: `${leadCount} foals · ${leadPct}% of the season`,
       score: 850,
+      visual: "sex-bars",
+      metadata: {
+        colts: stats.colts,
+        fillies: stats.fillies,
+        coltPct: stats.coltPct,
+        fillyPct: stats.fillyPct,
+      },
+    });
+  }
+
+  if (stats.avgPerWeek >= 1) {
+    candidates.push({
+      id: "pace",
+      category: "volume",
+      headline: `${stats.avgPerWeek} foals per week`,
+      subline: "Average across the season",
+      score: 640,
     });
   }
 
@@ -211,13 +241,28 @@ function buildCandidates(
   const maxWd = Math.max(...byWeekday);
   const maxWdIdx = byWeekday.indexOf(maxWd);
   if (maxWd >= 5) {
+    const weekdayMeta: Record<string, number> = {};
+    byWeekday.forEach((c, i) => {
+      weekdayMeta[`d${i}`] = c;
+    });
     candidates.push({
       id: "weekday-peak",
       category: "weekday",
       headline: `${maxWd} foals on ${DAY_NAMES[maxWdIdx]}s`,
-      subline: `Your busiest foaling day of the week`,
+      subline: "Your busiest foaling day of the week",
       score: 700 + maxWd,
-      metadata: { count: maxWd, day: DAY_NAMES[maxWdIdx] },
+      visual: "weekday-bars",
+      metadata: { count: maxWd, day: DAY_NAMES[maxWdIdx], ...weekdayMeta },
+    });
+  }
+
+  if (stats.weekendPct >= 25) {
+    candidates.push({
+      id: "weekend",
+      category: "weekday",
+      headline: `${stats.weekendPct}% on weekends`,
+      subline: "Saturday and Sunday foalings",
+      score: 600 + stats.weekendPct,
     });
   }
 
@@ -225,8 +270,8 @@ function buildCandidates(
     candidates.push({
       id: "night-shift",
       category: "time",
-      headline: `${stats.nightPct}% arrived after dark`,
-      subline: "Between 10pm and 6am",
+      headline: `${stats.nightPct}% after dark`,
+      subline: "Born between 10pm and 6am",
       score: 650 + stats.nightPct,
     });
   }
@@ -250,17 +295,43 @@ function buildCandidates(
       id: "peak-hour",
       category: "time",
       headline: `Peak hour: ${label}`,
-      subline: `${peakHourCount} foals born in that hour`,
+      subline: `${peakHourCount} foals in that hour`,
       score: 600 + peakHourCount,
     });
   }
 
-  let busiestWeek = { count: 0, start: "", end: "" };
   const byDate = new Map<string, number>();
   for (const r of rows) {
     const key = zonedParts(r.foaled_at, timeZone).dateKey;
     byDate.set(key, (byDate.get(key) ?? 0) + 1);
   }
+  let busiestDay = { count: 0, key: "" };
+  for (const [key, count] of byDate) {
+    if (count > busiestDay.count) busiestDay = { count, key };
+  }
+  if (busiestDay.count >= 3) {
+    const iso = `${busiestDay.key}T12:00:00Z`;
+    candidates.push({
+      id: "busiest-day",
+      category: "volume",
+      headline: `${busiestDay.count} foals in one day`,
+      subline: formatDate(iso, timeZone),
+      score: 710 + busiestDay.count,
+    });
+  }
+
+  const multiDays = [...byDate.values()].filter((c) => c >= 2).length;
+  if (multiDays >= 3) {
+    candidates.push({
+      id: "double-days",
+      category: "volume",
+      headline: `${multiDays} days with 2+ foals`,
+      subline: "When the barn barely slept",
+      score: 680 + multiDays,
+    });
+  }
+
+  let busiestWeek = { count: 0, start: "", end: "" };
   const dateKeys = [...byDate.keys()].sort();
   for (let i = 0; i < dateKeys.length; i++) {
     let count = 0;
@@ -283,21 +354,23 @@ function buildCandidates(
     }
   }
   if (busiestWeek.count >= 4) {
-    const fromIso = `${busiestWeek.start}T12:00:00Z`;
-    const toIso = `${busiestWeek.end}T12:00:00Z`;
     candidates.push({
       id: "busiest-week",
       category: "volume",
       headline: `${busiestWeek.count} foals in seven days`,
-      subline: formatShortRange(fromIso, toIso, timeZone),
+      subline: formatShortRange(
+        `${busiestWeek.start}T12:00:00Z`,
+        `${busiestWeek.end}T12:00:00Z`,
+        timeZone,
+      ),
       score: 720 + busiestWeek.count,
     });
   }
 
-  let longestDry = 0;
   const sorted = [...rows].sort(
     (a, b) => new Date(a.foaled_at).getTime() - new Date(b.foaled_at).getTime(),
   );
+  let longestDry = 0;
   for (let i = 1; i < sorted.length; i++) {
     const gap =
       (new Date(sorted[i].foaled_at).getTime() -
@@ -330,12 +403,35 @@ function buildCandidates(
     candidates.push({
       id: "sire-diversity",
       category: "sire",
-      headline: `${stats.uniqueSires} stallions represented`,
+      headline: `${stats.uniqueSires} stallions`,
       subline: stats.topSire
         ? `${stats.topSire} stood out above the rest`
-        : undefined,
+        : "Represented this season",
       score: 550 + stats.uniqueSires * 5,
     });
+  }
+
+  if (stats.topSire) {
+    const sireWeights = rows
+      .filter(
+        (r) =>
+          r.sire?.trim() === stats.topSire &&
+          r.weight_kg != null &&
+          !Number.isNaN(r.weight_kg),
+      )
+      .map((r) => r.weight_kg!);
+    if (sireWeights.length >= 5) {
+      const avg = round1(
+        sireWeights.reduce((a, b) => a + b, 0) / sireWeights.length,
+      );
+      candidates.push({
+        id: "top-sire-weight",
+        category: "sire",
+        headline: `${stats.topSire} foals averaged ${avg} kg`,
+        subline: `From ${sireWeights.length} recorded weights`,
+        score: 670,
+      });
+    }
   }
 
   if (stats.avgWeightKg != null && stats.weightRecordedCount >= 10) {
@@ -343,7 +439,7 @@ function buildCandidates(
       id: "avg-weight",
       category: "weight",
       headline: `${stats.avgWeightKg} kg average`,
-      subline: `Across ${stats.weightRecordedCount} recorded weights`,
+      subline: `${stats.weightRecordedCount} foals weighed`,
       score: 680,
     });
   }
@@ -357,7 +453,7 @@ function buildCandidates(
       id: "weight-range",
       category: "weight",
       headline: `${stats.minWeightKg}–${stats.maxWeightKg} kg`,
-      subline: "Lightest to heaviest foal this season",
+      subline: "Lightest to heaviest this season",
       score: 620,
     });
   }
@@ -392,9 +488,19 @@ function buildCandidates(
     candidates.push({
       id: "assisted-low",
       category: "assisted",
-      headline: `${stats.assistedPct}% assisted foalings`,
+      headline: `${stats.assistedPct}% assisted`,
       subline: "Most arrivals were unassisted",
       score: 580,
+    });
+  }
+
+  if (stats.assistedPct != null && stats.assistedPct >= 25) {
+    candidates.push({
+      id: "assisted-high",
+      category: "assisted",
+      headline: `${stats.assistedPct}% assisted`,
+      subline: "The team was hands-on this season",
+      score: 560,
     });
   }
 
@@ -408,7 +514,7 @@ function buildCandidates(
     candidates.push({
       id: "peak-month",
       category: "volume",
-      headline: `${MONTH_NAMES[peakMonth]} was your peak`,
+      headline: `${MONTH_NAMES[peakMonth]} peaked`,
       subline: `${peakMonthCount} foals that month`,
       score: 660 + peakMonthCount,
     });
@@ -426,11 +532,11 @@ function buildCandidates(
 }
 
 const CATEGORY_LIMITS: Partial<Record<string, number>> = {
-  weekday: 1,
+  weekday: 2,
   time: 2,
-  sire: 2,
+  sire: 3,
   weight: 2,
-  volume: 2,
+  volume: 3,
   streak: 1,
   assisted: 1,
 };
@@ -464,19 +570,45 @@ export function selectFactsForStory(
   return result;
 }
 
+export function assembleStoryFromSelection(
+  candidates: WrappedFact[],
+  selectedIds: string[],
+): WrappedFact[] {
+  const title = candidates.find((c) => c.id === "title");
+  const hardStats = candidates.find((c) => c.id === "hard-stats");
+  const byId = new Map(candidates.map((c) => [c.id, c]));
+
+  const middle = selectedIds
+    .map((id) => byId.get(id))
+    .filter(
+      (f): f is WrappedFact =>
+        !!f && f.category !== "title" && f.category !== "stats",
+    );
+
+  const result: WrappedFact[] = [];
+  if (title) result.push(title);
+  result.push(...middle);
+  if (hardStats) result.push(hardStats);
+  return result.length > 1 ? result : selectFactsForStory(candidates);
+}
+
 export function buildWrappedPayload(
   rows: FoalingRow[],
   seasonLabel: string,
   mediaUrls: string[],
   usingDemoData: boolean,
+  selectedFactIds?: string[],
 ): WrappedPayload {
   const hardStats = computeHardStats(rows, seasonLabel);
-  const candidates = buildCandidates(rows, seasonLabel, hardStats);
-  const facts = selectFactsForStory(candidates);
+  const allCandidates = buildAllCandidates(rows, seasonLabel, hardStats);
+  const facts = selectedFactIds?.length
+    ? assembleStoryFromSelection(allCandidates, selectedFactIds)
+    : selectFactsForStory(allCandidates);
 
   return {
     seasonLabel,
     facts,
+    allCandidates,
     hardStats,
     mediaUrls,
     usingDemoData,
