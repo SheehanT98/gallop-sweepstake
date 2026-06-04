@@ -3,11 +3,10 @@ Set-Location $PSScriptRoot
 
 if (-not (Test-Path .env)) {
     Copy-Item .env.example .env
-    Write-Host "Created .env — add your SharkClean login, then run again." -ForegroundColor Yellow
+    Write-Host "Created .env - add your SharkClean login, then run again." -ForegroundColor Yellow
     exit 1
 }
 
-# Ensure LAN flag exists in .env
 if (-not (Select-String -Path .env -Pattern '^\s*SHARK_LAN\s*=' -Quiet)) {
     Add-Content .env "`nSHARK_LAN=true"
     Write-Host "Added SHARK_LAN=true to .env" -ForegroundColor Cyan
