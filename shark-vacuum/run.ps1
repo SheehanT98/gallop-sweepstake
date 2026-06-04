@@ -1,4 +1,4 @@
-# Start Shark Home (desktop or LAN — set SHARK_LAN=true in .env for phone)
+# Start Shark Home (desktop or LAN - set SHARK_LAN=true in .env for phone)
 Set-Location $PSScriptRoot
 
 if (-not (Test-Path .env)) {
@@ -16,7 +16,7 @@ pip install -r requirements.txt -q
 $lan = Select-String -Path .env -Pattern '^\s*SHARK_LAN\s*=\s*true' -Quiet
 if ($lan) {
     Write-Host ""
-    Write-Host "LAN mode — use on your phone (same Wi-Fi):" -ForegroundColor Cyan
+    Write-Host "LAN mode - use on your phone (same Wi-Fi):" -ForegroundColor Cyan
     $ip = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
         Where-Object { $_.IPAddress -notlike '127.*' -and $_.PrefixOrigin -ne 'WellKnown' } |
         Select-Object -First 1).IPAddress
@@ -29,7 +29,7 @@ if ($lan) {
     Write-Host ""
 } else {
     Write-Host "Open http://127.0.0.1:8765 on this PC" -ForegroundColor Green
-    Write-Host "For phone: add SHARK_LAN=true to .env and run .\run-mobile.ps1" -ForegroundColor DarkGray
+    Write-Host 'For phone: add SHARK_LAN=true to .env and run .\run-mobile.ps1' -ForegroundColor DarkGray
 }
 
 python -m app.main
