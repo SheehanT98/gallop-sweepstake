@@ -1,4 +1,4 @@
-# Start Shark Home local controller
+# Start Shark Home (desktop or LAN — set SHARK_LAN=true in .env for phone)
 Set-Location $PSScriptRoot
 
 if (-not (Test-Path .env)) {
@@ -12,5 +12,24 @@ if (-not (Test-Path .venv)) {
 
 & .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt -q
-Write-Host "Open http://127.0.0.1:8765 in your browser" -ForegroundColor Green
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8765
+
+$lan = Select-String -Path .env -Pattern '^\s*SHARK_LAN\s*=\s*true' -Quiet
+if ($lan) {
+    Write-Host ""
+    Write-Host "LAN mode — use on your phone (same Wi-Fi):" -ForegroundColor Cyan
+    $ip = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+        Where-Object { $_.IPAddress -notlike '127.*' -and $_.PrefixOrigin -ne 'WellKnown' } |
+        Select-Object -First 1).IPAddress
+    if ($ip) {
+        Write-Host "  http://${ip}:8765" -ForegroundColor Green
+    } else {
+        Write-Host "  http://<your-PC-IP>:8765  (run ipconfig to find IPv4)" -ForegroundColor Yellow
+    }
+    Write-Host "  PC must stay on with this window open." -ForegroundColor DarkGray
+    Write-Host ""
+} else {
+    Write-Host "Open http://127.0.0.1:8765 on this PC" -ForegroundColor Green
+    Write-Host "For phone: add SHARK_LAN=true to .env and run .\run-mobile.ps1" -ForegroundColor DarkGray
+}
+
+python -m app.main

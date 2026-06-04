@@ -59,7 +59,7 @@ class SharkService:
         self._lock = asyncio.Lock()
         self.connection_error: str | None = None
         self.last_success_at: str | None = None
-        self.app_version = "1.1.0"
+        self.app_version = "1.2.0"
 
     @property
     def is_connected(self) -> bool:
@@ -103,6 +103,7 @@ class SharkService:
         self._vacuum = vacuum
         await self._vacuum.async_update()
         await self._vacuum.async_get_metadata()
+        await self.enable_live_map()
         _LOGGER.info("Connected to %s (%s)", vacuum.name, vacuum.oem_model_number)
 
     async def reconnect(self) -> None:
@@ -449,4 +450,126 @@ class SharkService:
             return json.loads(text)
         except json.JSONDecodeError:
             return {"raw_size": len(raw)}
+
+    async def enable_live_map(self) -> None:
+        if not self._settings.enable_rt_map:
+            return
+
+        async def _do() -> None:
+            async with self._lock:
+                props = self.vacuum.properties_full
+                if "Enable_RT_Map" in props:
+                    await self.vacuum.async_set_property_value("Enable_RT_Map", 1)
+                if "RTMapPeriod" in props:
+                    await self.vacuum.async_set_property_value("RTMapPeriod", 5)
+
+        try:
+            await self._run(_do)
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.debug("enable_live_map: %s", exc)
+
+    async def fetch_cleaning_statistics_raw(self) -> bytes | None:
+        return await self._fetch_property_bytes("Cleaning_Statistics")
+
+    def _parse_xy_from_value(self, value: Any) -> tuple[float, float] | None:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            for sep in (",", ";", " "):
+                if sep in value.strip():
+                    parts = value.replace(";", ",").split(",")
+                    if len(parts) >= 2:
+                        try:
+                            return float(parts[0]), float(parts[1])
+                        except ValueError:
+                            pass
+            try:
+                obj = json.loads(value)
+                return self._parse_xy_from_value(obj)
+            except json.JSONDecodeError:
+                return None
+        if isinstance(value, dict):
+            x = value.get("x") or value.get("X") or value.get("posX") or value.get("robotX")
+            y = value.get("y") or value.get("Y") or value.get("posY") or value.get("robotY")
+            if x is not None and y is not None:
+                try:
+                    return float(x), float(y)
+                except (TypeError, ValueError):
+                    pass
+            if "position" in value and isinstance(value["position"], (list, tuple)):
+                return self._parse_xy_from_value(value["position"])
+        if isinstance(value, (list, tuple)) and len(value) >= 2:
+            try:
+                return float(value[0]), float(value[1])
+            except (TypeError, ValueError):
+                return None
+        return None
+
+    def _normalize_coord(self, x: float, y: float) -> tuple[float, float]:
+        if abs(x) > 1.5 or abs(y) > 1.5:
+            if abs(x) > 100:
+                x, y = x / 1000.0, y / 1000.0
+            elif abs(x) > 10:
+                x, y = x / 100.0, y / 100.0
+        return max(0.0, min(1.0, x)), max(0.0, min(1.0, y))
+
+    async def get_robot_position(self) -> dict[str, Any] | None:
+        async def _do() -> dict[str, Any] | None:
+            async with self._lock:
+                await self.vacuum.async_update(
+                    [
+                        "Enable_RT_Map",
+                        "Send_Map_Data",
+                        "RTMapPeriod",
+                        *list(POSITION_KEYS),
+                    ]
+                )
+            for key in POSITION_KEYS:
+                if key not in self.vacuum.properties_full:
+                    continue
+                val = self._safe_get(key)
+                xy = self._parse_xy_from_value(val)
+                if xy:
+                    nx, ny = self._normalize_coord(*xy)
+                    return {
+                        "x": nx,
+                        "y": ny,
+                        "available": True,
+                        "source": key,
+                    }
+
+            raw = await self._fetch_property_bytes("Send_Map_Data")
+            if raw:
+                try:
+                    obj = json.loads(raw.decode("utf-8", errors="replace"))
+                except json.JSONDecodeError:
+                    obj = None
+                if isinstance(obj, dict):
+                    for k in ("robot", "pose", "position", "vacuum"):
+                        if k in obj:
+                            xy = self._parse_xy_from_value(obj[k])
+                            if xy:
+                                nx, ny = self._normalize_coord(*xy)
+                                return {
+                                    "x": nx,
+                                    "y": ny,
+                                    "available": True,
+                                    "source": "Send_Map_Data",
+                                }
+                    xy = self._parse_xy_from_value(obj)
+                    if xy:
+                        nx, ny = self._normalize_coord(*xy)
+                        return {
+                            "x": nx,
+                            "y": ny,
+                            "available": True,
+                            "source": "Send_Map_Data",
+                        }
+            return {"available": False}
+
+        try:
+            return await self._run(_do)
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.debug("get_robot_position: %s", exc)
+            return {"available": False, "error": str(exc)}
 
