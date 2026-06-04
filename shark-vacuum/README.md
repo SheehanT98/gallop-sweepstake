@@ -1,33 +1,8 @@
 # Shark Home
 
-Local web app for **Shark Matrix / Megalodon** vacuums (e.g. RV2620, RV2500WFB-UK). Replaces the SharkClean phone UI for day-to-day control on your PC.
+Local web controller for **Shark Matrix / Megalodon** vacuums. Replaces SharkClean for daily use: map, rooms, schedules, history, and notifications.
 
-
-
-## Use on your phone (same Wi-Fi)
-
-The robot is controlled via Shark cloud, but **the web UI can run on your phone’s browser** if a PC on your home network is running the app.
-
-1. On your Windows PC, in `.env` set:
-   ```env
-   SHARK_LAN=true
-   ```
-2. Run:
-   ```powershell
-   .\run-mobile.ps1
-   ```
-3. Note the address shown, e.g. `http://192.168.1.42:8765`
-4. On your phone (same Wi-Fi), open that URL in Safari or Chrome.
-5. **Add to Home Screen** (iPhone: Share → Add to Home Screen) for an app-like icon.
-
-**Important**
-- Your **PC must stay on** and the PowerShell window **must stay open** (or run the app on a Raspberry Pi / always-on machine instead).
-- This is **not** fully on-phone only — there is no native iOS/Android Shark Home app yet.
-- Your home Wi-Fi firewall may block access; allow port **8765** on the PC if needed.
-
-**Without a PC running:** use the official **SharkClean** app on your phone (same cloud login).
-
-## Quick start (Windows)
+## Quick start
 
 ```powershell
 cd shark-vacuum
@@ -36,59 +11,96 @@ notepad .env
 .\run.ps1
 ```
 
-Open **http://127.0.0.1:8765**
+Open **http://127.0.0.1:8765** (or the LAN URL from `run-mobile.ps1`).
 
-If login fails, you’ll be sent to **http://127.0.0.1:8765/setup** with the error and a retry button.
+## Features (v1.2)
 
-## `.env` (required)
+| Feature | Description |
+|---------|-------------|
+| **Control** | Vacuum, pause, dock, find, rooms, spot, power modes |
+| **Map** | Floor image + room labels + zone overlay |
+| **Live robot** | Dot on map while cleaning (RT map properties) |
+| **Schedules** | Local cron-style jobs (Mon–Sun, time, optional rooms) |
+| **History** | Sync from `Cleaning_Statistics` cloud property |
+| **Notifications** | Telegram and/or webhook on start/finish/error |
+| **Mobile** | `SHARK_LAN=true` + phone browser / Add to Home Screen |
+
+## Schedules
+
+Stored in `data/schedules.json`. Runs when:
+
+- Host app is **running** (background worker every ~30s)
+- Day and time match (timezone from `SHARK_TIMEZONE`)
+- At most **once per day** per schedule
+
+Example: weekdays 10:00 whole-home, or Kitchen only on selected days.
+
+## Notifications (optional)
+
+**Telegram**
+
+1. Chat with [@BotFather](https://t.me/BotFather) → create bot → copy token  
+2. Message your bot, then open  
+   `https://api.telegram.org/bot<TOKEN>/getUpdates` → find `"chat":{"id":...}`  
+3. Add to `.env`:
 
 ```env
-SHARK_EMAIL=you@example.com
-SHARK_PASSWORD='#password-with-hash'
-SHARK_REGION=europe
-SHARK_DEVICE_DSN=AC000W040920697
+SHARK_TELEGRAM_BOT_TOKEN=...
+SHARK_TELEGRAM_CHAT_ID=...
 ```
 
-Password starting with `#` **must** be quoted.
+**Webhook** — any URL that accepts JSON `POST`:
 
-## Features (v1.1)
+```env
+SHARK_WEBHOOK_URL=https://...
+```
 
-| Feature | Notes |
-|---------|--------|
-| Status + battery | Live refresh, connection indicator |
-| Map | Auto-decode PNG/JPEG/gzip/JSON-base64; zone overlay when available |
-| Room labels | From `Mobile_App_Room_Definition` when possible |
-| Home / Rooms / Spot | Same tabs as SharkClean |
-| VACUUM / PAUSE / RESUME | Context-aware main button |
-| Room multi-clean | Fallback `AreasToClean_V2/V3` if default API fails |
-| Power Eco/Normal/Max | |
-| Dock + Find | |
-| Multi-robot | Tap device name if account has several bots |
-| UI memory | Remembers tab, floor, selected rooms (`localStorage`) |
-| Setup page | Server starts even when `.env` is wrong |
+## Phone on Wi-Fi
 
-## Cloud vs offline
+```powershell
+.\run-mobile.ps1
+```
 
-**Requires Shark cloud** (same as SharkClean). The UI runs locally on your PC; the robot is controlled via Ayla/Shark servers. There is no fully offline mode on this hardware without firmware hacking.
+## Hosting on Vercel (later)
+
+The UI can be static on Vercel, but **this project is built to run as a long-lived Python server** because:
+
+- Shark cloud needs persistent login + polling  
+- Schedules need a background worker  
+- Notifications need state change detection  
+- Live map position needs frequent polls  
+
+For Vercel later, split into:
+
+1. **Static frontend** on Vercel  
+2. **API + worker** on Railway / Fly.io / a home Pi  
+3. **Database** for schedules/history (replace `data/*.json`)
+
+See `GET /api/features` for deployment notes.
+
+## Data files (local)
+
+```
+data/schedules.json
+data/history.json
+data/notification_log.json
+```
+
+Do not commit `data/` (gitignored).
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| Redirects to `/setup` | Fix `.env`, click Retry |
-| Map blank | Cleaning still works; map blob may need a new decoder — run `python scripts/discover.py` |
-| Ad blocker | Allow `ads-field.aylanetworks.com` |
-| Wrong robot | Set `SHARK_DEVICE_DSN` or use device picker |
+| Schedule didn’t run | App must be running; check timezone |
+| No history | Tap **Sync from robot** on History tab |
+| No robot dot | Position not exposed by firmware; map still works |
+| No Telegram | Check token, chat id, bot started chat |
 
 ## Development
 
 ```powershell
 pip install -r requirements.txt
 python -m pytest tests/ -q
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8765
+python -m app.main
 ```
-
-## Security
-
-- Listens on `127.0.0.1` only by default.
-- Never commit `.env` or `reports/`.

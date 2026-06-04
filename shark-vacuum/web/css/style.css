@@ -493,3 +493,106 @@ body {
   margin-top: 12px;
   color: var(--purple);
 }
+
+.tabs-scroll {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+.tabs-scroll .tab {
+  flex: 0 0 auto;
+  min-width: 4.5rem;
+  font-size: 0.8rem;
+}
+.robot-dot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  z-index: 4;
+  pointer-events: none;
+}
+.lan-banner {
+  margin: 0 16px 8px;
+  padding: 8px 12px;
+  background: #e8dff5;
+  border-radius: 10px;
+  font-size: 0.8rem;
+}
+.lan-banner a {
+  color: var(--purple);
+  font-weight: 600;
+}
+.schedule-form label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.schedule-form input[type="text"],
+.schedule-form input[type="time"],
+.schedule-form select {
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+.day-picks {
+  border: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 12px;
+  padding: 0;
+}
+.day-picks label {
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+.schedule-list,
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+.schedule-item,
+.history-item {
+  background: var(--card);
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+.schedule-item .muted,
+.muted {
+  display: block;
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.75rem;
+}
+.link-btn {
+  border: none;
+  background: none;
+  color: var(--danger);
+  cursor: pointer;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.subhead {
+  font-size: 0.9rem;
+  margin: 16px 0 8px;
+  color: var(--muted);
+}
+.history-toolbar {
+  margin-bottom: 8px;
+}

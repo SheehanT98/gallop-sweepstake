@@ -8,20 +8,19 @@
     <link rel="manifest" href="/static/manifest.json" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Shark Home" />
-
     <link rel="stylesheet" href="/static/css/style.css" />
   </head>
   <body>
     <div id="app">
       <header class="top-bar">
-        <button type="button" class="device-picker" id="btn-device-picker" title="Switch robot">
-          <span class="conn-dot" id="conn-dot" title="Cloud connection"></span>
+        <button type="button" class="device-picker" id="btn-device-picker">
+          <span class="conn-dot" id="conn-dot"></span>
           <span id="device-label">Connecting…</span>
-          <span class="chevron" aria-hidden="true">▾</span>
+          <span class="chevron">▾</span>
         </button>
         <div class="top-actions">
-          <button type="button" class="icon-btn" id="btn-find" title="Find robot">🔊</button>
-          <button type="button" class="icon-btn" id="btn-dock" title="Return to dock">🏠</button>
+          <button type="button" class="icon-btn" id="btn-find" title="Find">🔊</button>
+          <button type="button" class="icon-btn" id="btn-dock" title="Dock">🏠</button>
         </div>
       </header>
 
@@ -31,44 +30,47 @@
         <button type="button" class="secondary-btn" id="btn-close-devices">Close</button>
       </dialog>
 
-      <section class="status-card" id="status-card">
+      <section class="status-card">
         <div class="status-icon" id="status-icon">🏠</div>
         <div class="status-text">
           <p class="status-headline" id="status-headline">Loading…</p>
           <p class="status-sub" id="status-sub"></p>
         </div>
-        <div class="battery" id="battery-wrap">
+        <div class="battery">
           <span id="battery-value">—</span>
-          <span class="battery-icon">🔋</span>
+          <span>🔋</span>
         </div>
       </section>
 
-      <main class="map-panel" id="map-panel">
+      <div class="lan-banner" id="lan-banner" hidden></div>
+
+      <main class="map-panel">
         <div class="map-frame" id="map-frame">
-          <img id="map-image" alt="Floor map" hidden />
+          <img id="map-image" alt="Map" hidden />
           <canvas id="zone-canvas" class="zone-canvas"></canvas>
-          <div class="map-fallback" id="map-fallback">
-            <p>Map loading…</p>
-          </div>
+          <div class="robot-dot" id="robot-dot" hidden title="Robot"></div>
+          <div class="map-fallback" id="map-fallback"><p>Map loading…</p></div>
           <div class="room-overlay" id="room-overlay"></div>
         </div>
-        <div class="floor-picker" id="floor-picker">
+        <div class="floor-picker">
           <label for="floor-select">Floor</label>
           <select id="floor-select">
-            <option value="1">Floor 1</option>
-            <option value="2">Floor 2</option>
-            <option value="3">Floor 3</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
           </select>
         </div>
       </main>
 
-      <nav class="tabs" role="tablist">
-        <button type="button" class="tab active" data-tab="home" role="tab">Home</button>
-        <button type="button" class="tab" data-tab="rooms" role="tab">Rooms</button>
-        <button type="button" class="tab" data-tab="spot" role="tab">Spot</button>
+      <nav class="tabs tabs-scroll" role="tablist">
+        <button type="button" class="tab active" data-tab="home">Home</button>
+        <button type="button" class="tab" data-tab="rooms">Rooms</button>
+        <button type="button" class="tab" data-tab="spot">Spot</button>
+        <button type="button" class="tab" data-tab="schedule">Schedule</button>
+        <button type="button" class="tab" data-tab="history">History</button>
       </nav>
 
-      <section class="tab-panel active" id="panel-home" data-panel="home">
+      <section class="tab-panel active" data-panel="home">
         <div class="power-row">
           <span class="label">Power</span>
           <div class="segmented" id="power-modes">
@@ -80,15 +82,46 @@
         <p class="hint" id="action-hint"></p>
       </section>
 
-      <section class="tab-panel" id="panel-rooms" data-panel="rooms" hidden>
-        <p class="hint">Select rooms, then tap VACUUM or the button below.</p>
+      <section class="tab-panel" data-panel="rooms" hidden>
+        <p class="hint">Select rooms to clean.</p>
         <ul class="room-list" id="room-list"></ul>
-        <button type="button" class="secondary-btn" id="btn-clean-rooms">Clean selected rooms</button>
+        <button type="button" class="secondary-btn" id="btn-clean-rooms">Clean selected</button>
       </section>
 
-      <section class="tab-panel" id="panel-spot" data-panel="spot" hidden>
-        <p class="hint">Focused spot clean (uses SpecialCleanMode when available).</p>
+      <section class="tab-panel" data-panel="spot" hidden>
+        <p class="hint">Focused spot clean on current floor.</p>
         <button type="button" class="secondary-btn" id="btn-spot">Start spot clean</button>
+      </section>
+
+      <section class="tab-panel" data-panel="schedule" hidden>
+        <form id="schedule-form" class="schedule-form">
+          <label>Name <input type="text" id="sched-name" required placeholder="Weekday clean" /></label>
+          <label>Time <input type="time" id="sched-time" required value="10:00" /></label>
+          <fieldset class="day-picks">
+            <legend>Days</legend>
+            <label><input type="checkbox" value="0" checked /> Mon</label>
+            <label><input type="checkbox" value="1" checked /> Tue</label>
+            <label><input type="checkbox" value="2" checked /> Wed</label>
+            <label><input type="checkbox" value="3" checked /> Thu</label>
+            <label><input type="checkbox" value="4" checked /> Fri</label>
+            <label><input type="checkbox" value="5" /> Sat</label>
+            <label><input type="checkbox" value="6" /> Sun</label>
+          </fieldset>
+          <label>Rooms <span class="muted">(empty = whole home)</span>
+            <select id="sched-rooms" multiple size="4"></select>
+          </label>
+          <button type="submit" class="secondary-btn">Save schedule</button>
+        </form>
+        <ul class="schedule-list" id="schedule-list"></ul>
+      </section>
+
+      <section class="tab-panel" data-panel="history" hidden>
+        <div class="history-toolbar">
+          <button type="button" class="secondary-btn" id="btn-sync-history">Sync from robot</button>
+        </div>
+        <ul class="history-list" id="history-list"></ul>
+        <h3 class="subhead">Recent alerts</h3>
+        <ul class="history-list" id="notify-list"></ul>
       </section>
 
       <footer class="action-bar">
