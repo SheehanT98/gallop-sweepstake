@@ -5,11 +5,23 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from typing import Any
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .store import Store
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _zoneinfo(name: str) -> ZoneInfo:
+    try:
+        return ZoneInfo(name)
+    except ZoneInfoNotFoundError:
+        _LOGGER.warning(
+            "Timezone %r not found (Windows: pip install tzdata). Using UTC.",
+            name,
+        )
+        return ZoneInfo("UTC")
+
 
 # Monday=0 … Sunday=6 (matches Python weekday())
 DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -18,7 +30,7 @@ DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 class ScheduleRunner:
     def __init__(self, store: Store, timezone: str) -> None:
         self._store = store
-        self._tz = ZoneInfo(timezone)
+        self._tz = _zoneinfo(timezone)
 
     def _now(self) -> datetime:
         return datetime.now(self._tz)
