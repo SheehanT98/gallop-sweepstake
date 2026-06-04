@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#5b2d8e" />
+    <title>Shark Home</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="top-bar">
+        <button type="button" class="device-picker" id="device-name" aria-haspopup="listbox">
+          <span id="device-label">Connecting…</span>
+          <span class="chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="top-actions">
+          <button type="button" class="icon-btn" id="btn-find" title="Find robot">🔊</button>
+          <button type="button" class="icon-btn" id="btn-dock" title="Return to dock">🏠</button>
+        </div>
+      </header>
+
+      <section class="status-card" id="status-card">
+        <div class="status-icon" id="status-icon">🏠</div>
+        <div class="status-text">
+          <p class="status-headline" id="status-headline">Loading…</p>
+          <p class="status-sub" id="status-sub"></p>
+        </div>
+        <div class="battery" id="battery-wrap">
+          <span id="battery-value">—</span>
+          <span class="battery-icon">🔋</span>
+        </div>
+      </section>
+
+      <main class="map-panel" id="map-panel">
+        <div class="map-frame">
+          <img id="map-image" alt="Floor map" hidden />
+          <div class="map-fallback" id="map-fallback">
+            <p>Map loading…</p>
+          </div>
+          <div class="room-overlay" id="room-overlay"></div>
+        </div>
+        <div class="floor-picker" id="floor-picker" hidden>
+          <label for="floor-select">Floor</label>
+          <select id="floor-select">
+            <option value="1">Floor 1</option>
+            <option value="2">Floor 2</option>
+            <option value="3">Floor 3</option>
+          </select>
+        </div>
+      </main>
+
+      <nav class="tabs" role="tablist">
+        <button type="button" class="tab active" data-tab="home" role="tab" aria-selected="true">Home</button>
+        <button type="button" class="tab" data-tab="rooms" role="tab">Rooms</button>
+        <button type="button" class="tab" data-tab="spot" role="tab">Spot</button>
+      </nav>
+
+      <section class="tab-panel active" id="panel-home" data-panel="home">
+        <div class="power-row">
+          <span class="label">Power</span>
+          <div class="segmented" id="power-modes">
+            <button type="button" data-mode="Eco">Eco</button>
+            <button type="button" data-mode="Normal" class="active">Normal</button>
+            <button type="button" data-mode="Max">Max</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="panel-rooms" data-panel="rooms" hidden>
+        <p class="hint">Select rooms to clean (names must match your map).</p>
+        <ul class="room-list" id="room-list"></ul>
+        <button type="button" class="secondary-btn" id="btn-clean-rooms">Clean selected rooms</button>
+      </section>
+
+      <section class="tab-panel" id="panel-spot" data-panel="spot" hidden>
+        <p class="hint">Runs a focused spot clean on the current floor.</p>
+        <button type="button" class="secondary-btn" id="btn-spot">Start spot clean</button>
+      </section>
+
+      <footer class="action-bar">
+        <button type="button" class="primary-btn" id="btn-main">
+          <span class="btn-icon">≋</span>
+          <span id="btn-main-label">VACUUM</span>
+        </button>
+      </footer>
+
+      <div class="toast" id="toast" hidden></div>
+    </div>
+    <script src="/static/js/app.js" type="module"></script>
+  </body>
+</html>

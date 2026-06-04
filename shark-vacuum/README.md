@@ -1,30 +1,66 @@
-# Shark vacuum controller (discovery)
+# Shark Home
 
-Unofficial tooling for **Shark Matrix Plus** and other SharkClean robots. Uses the same cloud API as the SharkClean app ([`sharkiq`](https://github.com/sharkiqlibs/sharkiq) / Ayla Networks).
+Local web app that controls your **Shark Matrix / Megalodon** vacuum — same core features as SharkClean (status, map, rooms, spot, vacuum/pause/dock), running on your PC.
 
-**Backend choice:** Python + FastAPI — the only maintained unofficial SDK is Python.
+Uses the unofficial [sharkiq](https://github.com/sharkiqlibs/sharkiq) library (Shark cloud API). Stays on your home network for the UI; the robot still talks to Shark/Ayla cloud (same as the official app).
 
-## Quick start (capability discovery)
+## Requirements
 
-```bash
+- Python 3.10+
+- SharkClean account (UK: `SHARK_REGION=europe`)
+- `.env` with your credentials
+
+## Quick start (Windows)
+
+```powershell
 cd shark-vacuum
-python3 -m venv .venv
-source .venv/bin/activate
+copy .env.example .env
+notepad .env          # add email + password (quote password if it contains #)
+.\run.ps1
+```
+
+Open **http://127.0.0.1:8765**
+
+Or double-click `run.bat` after creating `.env`.
+
+## Manual start
+
+```powershell
+cd shark-vacuum
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your SharkClean email/password (UK: SHARK_REGION=europe)
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8765
+```
+
+## Features
+
+| Screen | What it does |
+|--------|----------------|
+| **Home** | Status, battery, floor map, power (Eco/Normal/Max), **VACUUM** / pause |
+| **Rooms** | Select rooms → clean selection |
+| **Spot** | Spot clean |
+| Top icons | Find (beep), return to dock |
+
+## Discovery tool
+
+To dump all API properties:
+
+```powershell
 python scripts/discover.py
 ```
 
-Report is written to `reports/discovery-*.json`.
-
-Optional: pin a device with `SHARK_DEVICE_DSN=AC000W040920697` in `.env`.
-
 ## Security
 
-- Never commit `.env` or discovery reports (they contain device state).
-- Use the same account as SharkClean; avoid linking the bot to multiple automation clouds at once.
+- Binds to `127.0.0.1` only — not exposed to the internet by default.
+- Do not commit `.env`.
+- Uses the same cloud login as SharkClean; avoid linking the bot to Google Home and this app at the same time if you see “offline” issues.
 
-## Next steps
+## Troubleshooting
 
-After discovery, we use the report to decide what your custom app can implement (rooms, maps, zones, schedules).
+| Issue | Fix |
+|-------|-----|
+| Password with `#` | `SHARK_PASSWORD='#yourPass'` in `.env` |
+| Auth failed | Check email/password in SharkClean app |
+| Map blank | Some firmware sends non-image map blobs; cleaning still works |
+| Pi-hole | Allow `ads-field.aylanetworks.com` |
