@@ -10,7 +10,8 @@
   <body>
     <div id="app">
       <header class="top-bar">
-        <button type="button" class="device-picker" id="device-name" aria-haspopup="listbox">
+        <button type="button" class="device-picker" id="btn-device-picker" title="Switch robot">
+          <span class="conn-dot" id="conn-dot" title="Cloud connection"></span>
           <span id="device-label">Connecting…</span>
           <span class="chevron" aria-hidden="true">▾</span>
         </button>
@@ -19,6 +20,12 @@
           <button type="button" class="icon-btn" id="btn-dock" title="Return to dock">🏠</button>
         </div>
       </header>
+
+      <dialog class="device-dialog" id="device-dialog">
+        <h2>Your robots</h2>
+        <ul id="device-list"></ul>
+        <button type="button" class="secondary-btn" id="btn-close-devices">Close</button>
+      </dialog>
 
       <section class="status-card" id="status-card">
         <div class="status-icon" id="status-icon">🏠</div>
@@ -33,14 +40,15 @@
       </section>
 
       <main class="map-panel" id="map-panel">
-        <div class="map-frame">
+        <div class="map-frame" id="map-frame">
           <img id="map-image" alt="Floor map" hidden />
+          <canvas id="zone-canvas" class="zone-canvas"></canvas>
           <div class="map-fallback" id="map-fallback">
             <p>Map loading…</p>
           </div>
           <div class="room-overlay" id="room-overlay"></div>
         </div>
-        <div class="floor-picker" id="floor-picker" hidden>
+        <div class="floor-picker" id="floor-picker">
           <label for="floor-select">Floor</label>
           <select id="floor-select">
             <option value="1">Floor 1</option>
@@ -51,7 +59,7 @@
       </main>
 
       <nav class="tabs" role="tablist">
-        <button type="button" class="tab active" data-tab="home" role="tab" aria-selected="true">Home</button>
+        <button type="button" class="tab active" data-tab="home" role="tab">Home</button>
         <button type="button" class="tab" data-tab="rooms" role="tab">Rooms</button>
         <button type="button" class="tab" data-tab="spot" role="tab">Spot</button>
       </nav>
@@ -65,16 +73,17 @@
             <button type="button" data-mode="Max">Max</button>
           </div>
         </div>
+        <p class="hint" id="action-hint"></p>
       </section>
 
       <section class="tab-panel" id="panel-rooms" data-panel="rooms" hidden>
-        <p class="hint">Select rooms to clean (names must match your map).</p>
+        <p class="hint">Select rooms, then tap VACUUM or the button below.</p>
         <ul class="room-list" id="room-list"></ul>
         <button type="button" class="secondary-btn" id="btn-clean-rooms">Clean selected rooms</button>
       </section>
 
       <section class="tab-panel" id="panel-spot" data-panel="spot" hidden>
-        <p class="hint">Runs a focused spot clean on the current floor.</p>
+        <p class="hint">Focused spot clean (uses SpecialCleanMode when available).</p>
         <button type="button" class="secondary-btn" id="btn-spot">Start spot clean</button>
       </section>
 
@@ -83,6 +92,7 @@
           <span class="btn-icon">≋</span>
           <span id="btn-main-label">VACUUM</span>
         </button>
+        <p class="footer-meta" id="footer-meta"></p>
       </footer>
 
       <div class="toast" id="toast" hidden></div>

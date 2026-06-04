@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shark Home — Setup</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body class="setup-body">
+    <main class="setup-card">
+      <h1>Shark Home setup</h1>
+      <p class="setup-lead">
+        The app could not connect to Shark cloud. Fix your <code>.env</code> file
+        in the <code>shark-vacuum</code> folder, then retry.
+      </p>
+
+      <div class="setup-error" id="setup-error" hidden></div>
+
+      <section class="setup-checklist">
+        <h2>Checklist</h2>
+        <ul>
+          <li><code>SHARK_EMAIL</code> — same as SharkClean app</li>
+          <li>
+            <code>SHARK_PASSWORD</code> — use quotes if it contains
+            <code>#</code>: <code>'#secret'</code>
+          </li>
+          <li><code>SHARK_REGION=europe</code> for UK accounts</li>
+          <li>Optional: <code>SHARK_DEVICE_DSN=AC000W040920697</code></li>
+        </ul>
+      </section>
+
+      <p class="setup-note">
+        <strong>Cloud required:</strong> This app uses Shark’s cloud API (same as
+        the official app). It does not control the robot fully offline.
+      </p>
+
+      <button type="button" class="primary-btn" id="btn-retry">Retry connection</button>
+      <a href="/" class="setup-link">Back to app</a>
+    </main>
+    <script src="/static/js/setup.js" type="module"></script>
+  </body>
+</html>

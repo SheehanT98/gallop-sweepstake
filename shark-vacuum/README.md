@@ -1,66 +1,69 @@
 # Shark Home
 
-Local web app that controls your **Shark Matrix / Megalodon** vacuum — same core features as SharkClean (status, map, rooms, spot, vacuum/pause/dock), running on your PC.
-
-Uses the unofficial [sharkiq](https://github.com/sharkiqlibs/sharkiq) library (Shark cloud API). Stays on your home network for the UI; the robot still talks to Shark/Ayla cloud (same as the official app).
-
-## Requirements
-
-- Python 3.10+
-- SharkClean account (UK: `SHARK_REGION=europe`)
-- `.env` with your credentials
+Local web app for **Shark Matrix / Megalodon** vacuums (e.g. RV2620, RV2500WFB-UK). Replaces the SharkClean phone UI for day-to-day control on your PC.
 
 ## Quick start (Windows)
 
 ```powershell
 cd shark-vacuum
 copy .env.example .env
-notepad .env          # add email + password (quote password if it contains #)
+notepad .env
 .\run.ps1
 ```
 
 Open **http://127.0.0.1:8765**
 
-Or double-click `run.bat` after creating `.env`.
+If login fails, you’ll be sent to **http://127.0.0.1:8765/setup** with the error and a retry button.
 
-## Manual start
+## `.env` (required)
 
-```powershell
-cd shark-vacuum
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8765
+```env
+SHARK_EMAIL=you@example.com
+SHARK_PASSWORD='#password-with-hash'
+SHARK_REGION=europe
+SHARK_DEVICE_DSN=AC000W040920697
 ```
 
-## Features
+Password starting with `#` **must** be quoted.
 
-| Screen | What it does |
-|--------|----------------|
-| **Home** | Status, battery, floor map, power (Eco/Normal/Max), **VACUUM** / pause |
-| **Rooms** | Select rooms → clean selection |
-| **Spot** | Spot clean |
-| Top icons | Find (beep), return to dock |
+## Features (v1.1)
 
-## Discovery tool
+| Feature | Notes |
+|---------|--------|
+| Status + battery | Live refresh, connection indicator |
+| Map | Auto-decode PNG/JPEG/gzip/JSON-base64; zone overlay when available |
+| Room labels | From `Mobile_App_Room_Definition` when possible |
+| Home / Rooms / Spot | Same tabs as SharkClean |
+| VACUUM / PAUSE / RESUME | Context-aware main button |
+| Room multi-clean | Fallback `AreasToClean_V2/V3` if default API fails |
+| Power Eco/Normal/Max | |
+| Dock + Find | |
+| Multi-robot | Tap device name if account has several bots |
+| UI memory | Remembers tab, floor, selected rooms (`localStorage`) |
+| Setup page | Server starts even when `.env` is wrong |
 
-To dump all API properties:
+## Cloud vs offline
 
-```powershell
-python scripts/discover.py
-```
-
-## Security
-
-- Binds to `127.0.0.1` only — not exposed to the internet by default.
-- Do not commit `.env`.
-- Uses the same cloud login as SharkClean; avoid linking the bot to Google Home and this app at the same time if you see “offline” issues.
+**Requires Shark cloud** (same as SharkClean). The UI runs locally on your PC; the robot is controlled via Ayla/Shark servers. There is no fully offline mode on this hardware without firmware hacking.
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| Password with `#` | `SHARK_PASSWORD='#yourPass'` in `.env` |
-| Auth failed | Check email/password in SharkClean app |
-| Map blank | Some firmware sends non-image map blobs; cleaning still works |
-| Pi-hole | Allow `ads-field.aylanetworks.com` |
+| Redirects to `/setup` | Fix `.env`, click Retry |
+| Map blank | Cleaning still works; map blob may need a new decoder — run `python scripts/discover.py` |
+| Ad blocker | Allow `ads-field.aylanetworks.com` |
+| Wrong robot | Set `SHARK_DEVICE_DSN` or use device picker |
+
+## Development
+
+```powershell
+pip install -r requirements.txt
+python -m pytest tests/ -q
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8765
+```
+
+## Security
+
+- Listens on `127.0.0.1` only by default.
+- Never commit `.env` or `reports/`.
