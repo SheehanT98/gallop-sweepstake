@@ -2,6 +2,31 @@
 
 Local web app for **Shark Matrix / Megalodon** vacuums (e.g. RV2620, RV2500WFB-UK). Replaces the SharkClean phone UI for day-to-day control on your PC.
 
+
+
+## Use on your phone (same Wi-Fi)
+
+The robot is controlled via Shark cloud, but **the web UI can run on your phone’s browser** if a PC on your home network is running the app.
+
+1. On your Windows PC, in `.env` set:
+   ```env
+   SHARK_LAN=true
+   ```
+2. Run:
+   ```powershell
+   .\run-mobile.ps1
+   ```
+3. Note the address shown, e.g. `http://192.168.1.42:8765`
+4. On your phone (same Wi-Fi), open that URL in Safari or Chrome.
+5. **Add to Home Screen** (iPhone: Share → Add to Home Screen) for an app-like icon.
+
+**Important**
+- Your **PC must stay on** and the PowerShell window **must stay open** (or run the app on a Raspberry Pi / always-on machine instead).
+- This is **not** fully on-phone only — there is no native iOS/Android Shark Home app yet.
+- Your home Wi-Fi firewall may block access; allow port **8765** on the PC if needed.
+
+**Without a PC running:** use the official **SharkClean** app on your phone (same cloud login).
+
 ## Quick start (Windows)
 
 ```powershell

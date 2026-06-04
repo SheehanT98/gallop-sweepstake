@@ -1,0 +1,10 @@
+{
+  "name": "Shark Home",
+  "short_name": "Shark Home",
+  "description": "Control your Shark vacuum on your home network",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#e8e6ec",
+  "theme_color": "#5b2d8e",
+  "orientation": "portrait"
+}

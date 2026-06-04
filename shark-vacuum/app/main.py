@@ -24,6 +24,9 @@ shark = SharkService(settings)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    url = settings.phone_url()
+    if settings.lan_mode:
+        _LOGGER.info("LAN mode: phone URL %s", url or "(could not detect IP)")
     try:
         await shark.connect()
     except Exception as exc:  # noqa: BLE001
@@ -71,6 +74,18 @@ class FloorRequest(BaseModel):
 class SelectDeviceRequest(BaseModel):
     dsn: str
 
+
+
+
+@app.get("/api/mobile-url")
+async def mobile_url():
+    """URL to open on your phone when SHARK_LAN=true."""
+    return {
+        "lan_mode": settings.lan_mode,
+        "url": settings.phone_url(),
+        "port": settings.port,
+        "note": "Phone must be on the same Wi-Fi. PC running this app must stay on.",
+    }
 
 @app.get("/api/health")
 async def health():
